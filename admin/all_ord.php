@@ -1,8 +1,23 @@
 <?php
 session_start();
-$pdo = new PDO("mysql:host=127.0.0.1;dbname=adda_collection;charset=utf8mb4", "root", "");
 
-// 1. STATUS UPDATE LOGIC (Agar status change karna ho)
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
+
+// 1. STATUS UPDATE LOGIC
 if (isset($_POST['update_status'])) {
     $order_id = $_POST['order_id'];
     $new_status = $_POST['new_status'];

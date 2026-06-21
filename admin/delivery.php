@@ -1,11 +1,27 @@
 <?php
 session_start();
-$pdo = new PDO("mysql:host=127.0.0.1;dbname=adda_collection;charset=utf8mb4", "root", "");
+
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
 
 // LOGIC: Sirf active orders dikhao (Pending aur Shipped)
 $orders = $pdo->query("SELECT * FROM orders 
                        WHERE order_status NOT IN ('Completed', 'Cancelled', 'Refunded') 
-                       ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+                       ORDER BY id DESC")->fetchAll();
 ?>
 
 <!DOCTYPE html>

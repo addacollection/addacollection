@@ -12,7 +12,7 @@ if (session_status() == PHP_SESSION_NONE) {
 define('ADMIN_USER', 'Addacollection_admin');
 define('ADMIN_PASS', 'Addacollection0001');
 
-// Agar admin pehle se logged in hai, toh seedhe admin dashboard (admin/index.php) par bhejo
+// Agar admin pehle se logged in hai, toh seedhe admin dashboard par bhejo
 if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
     header("Location: index.php");
     exit;
@@ -28,11 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_msg = "Please fill in all mandatory access paths.";
     } elseif ($username === ADMIN_USER && $password === ADMIN_PASS) {
         // Secure admin session token deployment
+        session_regenerate_id(true); // Extra security: prevent session fixation
         $_SESSION['user_id'] = 'ADMIN_NODE_01';
         $_SESSION['user_name'] = 'Adda Admin';
         $_SESSION['user_role'] = 'admin';
 
-        // Yeh usi folder ke andar index.php (Admin Dashboard) par le jayega
         header("Location: index.php");
         exit;
     } else {

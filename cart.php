@@ -1,36 +1,37 @@
 <?php
 if (session_status() == PHP_SESSION_NONE) session_start();
 
-$host = '127.0.0.1';
-$dbname = 'adda_collection';
-$user = 'root';
-$pass = '';
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass);
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Database Connection Failed: " . $e->getMessage());
 }
 
-// 1. SESSION CHECK: Agar login nahi hai toh redirect karo
+// 1. SESSION CHECK
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php"); // Yahan apne login page ka path do
+    header("Location: login.php");
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
 
-// 2. ADD TO CART LOGIC (Form submission handle karne ke liye)
+// 2. ADD TO CART LOGIC
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'add_to_cart') {
     $product_id = intval($_POST['product_id']);
     $quantity = intval($_POST['quantity']);
 
-    // INSERT: Database mein data bhejo
     $stmt = $pdo->prepare("INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)");
     $stmt->execute([$user_id, $product_id, $quantity]);
     
-    // Redirect wapas cart par
     header("Location: cart.php");
     exit();
 }
@@ -45,8 +46,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
 
 // 4. FETCH CART DATA
 $stmt = $pdo->prepare("SELECT cart.id as cart_id, products.* FROM cart 
-                       JOIN products ON cart.product_id = products.id 
-                       WHERE cart.user_id = ?");
+                        JOIN products ON cart.product_id = products.id 
+                        WHERE cart.user_id = ?");
 $stmt->execute([$user_id]);
 $cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

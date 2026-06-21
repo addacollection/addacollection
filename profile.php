@@ -1,25 +1,26 @@
 <?php
-if (session_status() == PHP_SESSION_NONE) session_start();
+session_start();
 
-// --- DIRECT DATABASE CONNECTION (No config.php needed) ---
-$host = '127.0.0.1';
-$dbname = 'adda_collection';
-$user = 'root';
-$pass = '';
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass);
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Database Connection Failed: " . $e->getMessage());
 }
-// ---------------------------------------------------------
 
 // Auth check file validation
 if (file_exists(__DIR__ . '/auth_check.php')) {
     require_once(__DIR__ . '/auth_check.php');
 } else {
-    die("Error: 'auth_check.php' missing in adda_collection root.");
+    die("Error: 'auth_check.php' missing.");
 }
 
 // Locks the page if not logged in

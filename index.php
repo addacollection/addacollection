@@ -4,13 +4,16 @@
  * Fully standalone monolithic page with smooth curved architecture.
  */
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', ''); 
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
+define('DB_USER', 'avnadmin');
+define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM'); 
+define('DB_NAME', 'defaultdb');
+define('DB_PORT', '13574');
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false
@@ -24,9 +27,10 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 $cart_count = 0;
-$new_count = 0; // Notification variable added
+$new_count = 0; 
 
 if (isset($_SESSION['user_id']) && $pdo) {
+    // Fetch Cart Count
     try {
         $stmt = $pdo->prepare("SELECT SUM(quantity) FROM cart WHERE user_id = ?");
         $stmt->execute([$_SESSION['user_id']]);

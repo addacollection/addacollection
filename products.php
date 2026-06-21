@@ -4,13 +4,16 @@
  * Premium grid feed with NO fake products. Completely driven by Admin Panel uploads.
  */
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
+define('DB_USER', 'avnadmin');
+define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM');
+define('DB_NAME', 'defaultdb');
+define('DB_PORT', '13574');
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false
@@ -32,7 +35,7 @@ $status_msg = '';
 // INTERCEPT FORM SUBMISSION ACTION: ADD ITEM TO USER CART
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     if (!isset($_SESSION['user_id'])) {
-        $_SESSION['user_id'] = 1; // Temporary fallback user context session allocation
+        $_SESSION['user_id'] = 1; 
     }
    
     $product_id = (int)($_POST['product_id'] ?? 0);
@@ -40,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
    
     if ($pdo && $product_id > 0) {
         try {
-            // Check if clothes already recorded inside basket
             $check = $pdo->prepare("SELECT id, quantity FROM cart WHERE user_id = ? AND product_id = ?");
             $check->execute([$_SESSION['user_id'], $product_id]);
             $existing = $check->fetch();
@@ -59,13 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// FETCH CLOTHES SYSTEM SCHEMATICS - SEARCH FIXED
+// FETCH CLOTHES SYSTEM SCHEMATICS
 if ($pdo) {
     try {
         $sql = "SELECT p.* FROM products p WHERE 1=1";
         $params = [];
-        
-        // Search Logic: Name, Description, aur Category text ke liye
+       
         if (!empty($search_query)) {
             $sql .= " AND (p.name LIKE ? OR p.description LIKE ? OR p.category LIKE ?)";
             $bind_term = "%{$search_query}%";
@@ -73,23 +74,22 @@ if ($pdo) {
             $params[] = $bind_term;
             $params[] = $bind_term;
         }
-        
-        // Category Filter logic
+       
         if ($category_filter > 0) {
             $stmt_cat = $pdo->prepare("SELECT name FROM categories WHERE id = ?");
             $stmt_cat->execute([$category_filter]);
             $cat_name = $stmt_cat->fetchColumn();
-            
+           
             $sql .= " AND (p.category_id = ? OR p.category = ?)";
             $params[] = $category_filter;
             $params[] = $cat_name;
         }
-        
+       
         $sql .= " ORDER BY p.id DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $products = $stmt->fetchAll();
-        
+       
     } catch (PDOException $e) {
         $products = [];
     }

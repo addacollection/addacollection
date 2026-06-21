@@ -1,6 +1,24 @@
 <?php
 session_start();
-$pdo = new PDO("mysql:host=127.0.0.1;dbname=adda_collection;charset=utf8mb4", "root", "");
+
+// Aiven MySQL Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$db   = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+// Connection string update
+$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
+
+try {
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
 
 $stmt = $pdo->prepare("SELECT SUM(products.price * cart.quantity) as subtotal FROM cart JOIN products ON cart.product_id = products.id WHERE cart.user_id = ?");
 $stmt->execute([$_SESSION['user_id']]);

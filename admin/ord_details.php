@@ -1,8 +1,21 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+session_start();
+
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
 }
-$pdo = new PDO("mysql:host=127.0.0.1;dbname=adda_collection;charset=utf8mb4", "root", "");
 
 $order_id = $_GET['id'] ?? 0;
 
@@ -13,7 +26,7 @@ $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$order) { die("Order not found!"); }
 
-// 2. Order Items fetch karo (Yeh important hai!)
+// 2. Order Items fetch karo
 $items_stmt = $pdo->prepare("SELECT * FROM order_items WHERE order_id = ?");
 $items_stmt->execute([$order_id]);
 $items = $items_stmt->fetchAll(PDO::FETCH_ASSOC);

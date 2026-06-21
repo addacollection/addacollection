@@ -1,6 +1,21 @@
 <?php
 session_start();
-$pdo = new PDO("mysql:host=127.0.0.1;dbname=adda_collection;charset=utf8mb4", "root", "");
+
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
 
 if (!isset($_GET['id'])) {
     header("Location: delivery.php");
@@ -20,9 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Status update logic
     $update = $pdo->prepare("UPDATE orders SET order_status = ? WHERE id = ?");
     $update->execute([$new_status, $order_id]);
-    
-    // Optional: Agar Refund hai, toh yahan tum apna payment gateway 
-    // ya custom refund process ka code add kar sakte ho
     
     header("Location: delivery.php?success=1");
     exit();

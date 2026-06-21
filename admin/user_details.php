@@ -1,6 +1,6 @@
 <?php
 /**
- * Adda Collection — User Intelligence & Diagnostic Profile Console (Fully Safe Mode)
+ * Adda Collection — User Intelligence & Diagnostic Profile Console
  * Location: /admin/user_details.php
  */
 
@@ -10,14 +10,16 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Strict Security Gate
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit;
 }
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', ''); 
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header("Location: users.php");
@@ -26,22 +28,16 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 
 $userId = (int)$_GET['id'];
 
-// Initializing Default Values to Prevent Any System Crashes
-$orders_success = 0;
-$orders_rejected = 0;
-$orders_refund = 0;
-$orders_pending = 0;
-$total_orders = 0;
-$total_investment = 0;
-$order_history = [];
+$orders_success = 0; $orders_rejected = 0; $orders_refund = 0; $orders_pending = 0;
+$total_orders = 0; $total_investment = 0; $order_history = [];
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
     
-    // 1. Fetch Core User Details
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? AND role != 'admin'");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
@@ -50,37 +46,30 @@ try {
         die("System Alert: Request profile hash code not found in active database clusters.");
     }
 
-    // 2. Safe Telemetry Box: Column Existence Safe Checks
     $checkStatusCol = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'status'")->fetch();
     $checkPriceCol = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'total_price'")->fetch();
     
-    // Total Requests Count (Bina status filter ke total nikalne ke liye safe fallback)
     $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ?");
     $stmt->execute([$userId]);
     $total_orders = $stmt->fetchColumn() ?: 0;
 
     if ($checkStatusCol) {
-        // Success Orders
         $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'delivered'");
         $stmt->execute([$userId]);
         $orders_success = $stmt->fetchColumn() ?: 0;
 
-        // Rejected/Cancelled Orders
         $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'cancelled'");
         $stmt->execute([$userId]);
         $orders_rejected = $stmt->fetchColumn() ?: 0;
 
-        // Refunded Orders
         $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'refunded'");
         $stmt->execute([$userId]);
         $orders_refund = $stmt->fetchColumn() ?: 0;
 
-        // Pending Orders
         $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'pending'");
         $stmt->execute([$userId]);
         $orders_pending = $stmt->fetchColumn() ?: 0;
 
-        // Financial Tracker with price column check
         if ($checkPriceCol) {
             $stmt = $pdo->prepare("SELECT SUM(total_price) FROM orders WHERE user_id = ? AND status = 'delivered'");
             $stmt->execute([$userId]);
@@ -88,7 +77,6 @@ try {
         }
     }
 
-    // 3. Complete Purchase Stream Ledger (Dynamic Selection based on existing columns)
     $queryStr = "SELECT id, created_at";
     if ($checkPriceCol) { $queryStr .= ", total_price"; }
     if ($checkStatusCol) { $queryStr .= ", status"; }

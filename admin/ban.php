@@ -10,25 +10,28 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Strict Security Gate
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit;
 }
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', ''); 
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
 
 $search_query = '';
 $status_msg = '';
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
     
-    // Safety Engine: Check if 'is_banned' column exists, if not create it automatically!
+    // Safety Engine: Ensure column exists
     $checkBanCol = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'is_banned'")->fetch();
     if (!$checkBanCol) {
         $pdo->exec("ALTER TABLE `users` ADD COLUMN `is_banned` TINYINT(1) DEFAULT 0");
@@ -57,7 +60,6 @@ try {
         $stmt->execute(["%$search_query%", "%$search_query%"]);
         $users = $stmt->fetchAll();
     } else {
-        // Fetch all base user cluster rows
         $users = $pdo->query("SELECT * FROM users WHERE role = 'user' ORDER BY id DESC")->fetchAll();
     }
 

@@ -1,6 +1,19 @@
 <?php
-// Database connection
-$pdo = new PDO("mysql:host=127.0.0.1;dbname=adda_collection;charset=utf8mb4", "root", "");
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id = $_POST['id'];
@@ -11,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Agar nayi image upload ki gayi hai
     if (!empty($_FILES['new_image']['name'])) {
         $img = time() . "_" . $_FILES['new_image']['name'];
-        // Path check karo (Agar admin folder mein ho to ../ use karo)
         if (move_uploaded_file($_FILES['new_image']['tmp_name'], "../uploads/products/" . $img)) {
             $stmt = $pdo->prepare("UPDATE products SET name=?, price=?, description=?, image_url=? WHERE id=?");
             $stmt->execute([$name, $price, $description, $img, $id]);

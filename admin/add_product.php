@@ -1,12 +1,25 @@
 <?php
 session_start();
-require_once '../common/config.php';
+
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
 
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: ../auth.php"); exit;
 }
 
-// FOLDER CREATE KARNE KA CODE (Yahan se fix hoga)
 $upload_dir = "../uploads/products/";
 if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0777, true);
@@ -22,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $img = time() . "_" . $_FILES['image']['name'];
     
-    // Ab ye line error nahi degi kyunki folder exist karta hoga
     if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_dir . $img)) {
         $stmt = $pdo->prepare("INSERT INTO products (name, price, description, category, image_url) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$name, $price, $desc, $cat, $img]);

@@ -4,13 +4,16 @@
  * Amazon App Style Compact Boxes
  */
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
+define('DB_USER', 'avnadmin');
+define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM');
+define('DB_NAME', 'defaultdb');
+define('DB_PORT', '13574');
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false
@@ -25,7 +28,6 @@ if (session_status() == PHP_SESSION_NONE) { session_start(); }
 $categories_list = [];
 if ($pdo) {
     try {
-        // Ensure you have a column named 'img' in your database table
         $stmt = $pdo->query("SELECT id, name, img FROM categories ORDER BY id ASC");
         $categories_list = $stmt->fetchAll();
     } catch (PDOException $e) {
@@ -33,7 +35,7 @@ if ($pdo) {
     }
 }
 
-// 2. Fallback Categories (if DB is empty)
+// 2. Fallback Categories (if DB is empty or connection fails)
 $default_categories = [
     ['id' => 1, 'name' => 'Womens Wear', 'img' => 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=200&q=80'],
     ['id' => 2, 'name' => 'Mens Wear', 'img' => 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=200&q=80'],

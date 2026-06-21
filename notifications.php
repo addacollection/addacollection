@@ -1,6 +1,21 @@
 <?php
 session_start();
-require_once 'common/config.php';
+
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$db   = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
+
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
 
 if (!isset($_SESSION['user_id'])) { header("Location: auth.php"); exit; }
 
@@ -17,8 +32,8 @@ $stmt->execute([$_SESSION['user_id'], $_SESSION['user_id']]);
 
 // 3. Delete Logic
 if (isset($_GET['del_id'])) {
-    $pdo->prepare("INSERT IGNORE INTO user_notification_status (user_id, notification_id) VALUES (?, ?)")
-        ->execute([$_SESSION['user_id'], (int)$_GET['del_id']]);
+    $stmt = $pdo->prepare("INSERT IGNORE INTO user_notification_status (user_id, notification_id) VALUES (?, ?)");
+    $stmt->execute([$_SESSION['user_id'], (int)$_GET['del_id']]);
     header("Location: notifications.php");
     exit;
 }

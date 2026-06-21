@@ -4,13 +4,16 @@
  * Simple core segments management console.
  */
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', ''); 
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
+$dbname = 'defaultdb';
+$user = 'avnadmin';
+$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
+$port = 13574;
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false
@@ -22,7 +25,7 @@ try {
 $message = '';
 $error = '';
 
-// ACTION: SEED SIMPLE DEPARMENTS
+// ACTION: SEED SIMPLE DEPARTMENTS
 if (isset($_POST['action']) && $_POST['action'] === 'inject_defaults') {
     $simple_categories = [
         ['name' => 'Women Wear', 'description' => 'Elegant dresses, luxury tops, and timeless ethnic ensembles.'],

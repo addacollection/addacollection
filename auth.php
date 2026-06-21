@@ -4,19 +4,24 @@
  * Monolithic architecture with secure password hashing, session tracking, and ban filtering.
  */
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', ''); 
-define('DB_NAME', 'adda_collection');
+// Aiven Database Configuration
+define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
+define('DB_USER', 'avnadmin');
+define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM'); 
+define('DB_NAME', 'defaultdb');
+define('DB_PORT', '13574');
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+    // PDO connection string with Port included
+    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false
     ]);
 } catch (PDOException $e) {
     $pdo = null;
+    // Error will be caught in the POST logic below
 }
 
 if (session_status() == PHP_SESSION_NONE) {
@@ -33,12 +38,12 @@ if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
 
 $error_msg = '';
 $success_msg = '';
-$active_tab = 'login'; // Controls UI toggle state on submission error
-$account_banned_trigger = false; // Controls Ban Alert Modal Trigger State
+$active_tab = 'login'; 
+$account_banned_trigger = false; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$pdo) {
-        $error_msg = "Database Connection Failed. Please ensure MySQL is active in XAMPP.";
+        $error_msg = "Database Connection Failed. Please check network/config.";
     } else {
         $action = $_POST['action'] ?? '';
 
@@ -58,17 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     if ($user && password_verify($password, $user['password'])) {
                         
-                        // CRITICAL PROTECTION BLOCK: Check if User has been Blacklisted/Banned
                         if (isset($user['is_banned']) && $user['is_banned'] == 1) {
-                            $account_banned_trigger = true; // Opens the Modal popup visually
+                            $account_banned_trigger = true;
                             $error_msg = "Security Restriction: This account node has been banned by management.";
                         } else {
-                            // Normal Login Proceed Handler
                             $_SESSION['user_id'] = $user['id'];
                             $_SESSION['user_name'] = $user['name'];
                             $_SESSION['user_role'] = $user['role'] ?? 'user';
                             
-                            // Intelligent routing architecture
                             $redirect = $_SESSION['redirect_to'] ?? (($_SESSION['user_role'] === 'admin') ? 'admin/index.php' : 'index.php');
                             unset($_SESSION['redirect_to']);
                             
@@ -99,7 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_msg = "Password length must be at least 6 characters long.";
             } else {
                 try {
-                    // Verify unique account availability
                     $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
                     $check->execute([$email]);
                     
@@ -108,12 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
                         
-                        // Set default role as 'user' and is_banned as 0
                         $ins = $pdo->prepare("INSERT INTO users (name, email, password, role, is_banned) VALUES (?, ?, ?, 'user', 0)");
                         $ins->execute([$name, $email, $hashed_password]);
                         
                         $success_msg = "Account created successfully! Please sign in now.";
-                        $active_tab = 'login'; // Send user to login tab automatically
+                        $active_tab = 'login'; 
                     }
                 } catch (PDOException $e) {
                     $error_msg = "Database Error: " . $e->getMessage();
