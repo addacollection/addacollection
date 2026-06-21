@@ -1,27 +1,26 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+// Path ko apni directory ke hisaab se adjust kar lena
+require_once __DIR__ . '/../common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
+// Auth check (Ensure only admin can see active orders)
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    die("Access Denied.");
 }
 
-// LOGIC: Sirf active orders dikhao (Pending aur Shipped)
-$orders = $pdo->query("SELECT * FROM orders 
-                       WHERE order_status NOT IN ('Completed', 'Cancelled', 'Refunded') 
-                       ORDER BY id DESC")->fetchAll();
+// 2. Fetch Active Orders
+// $pdo ab central config se aa raha hai
+try {
+    $orders = $pdo->query("SELECT * FROM orders 
+                           WHERE order_status NOT IN ('Completed', 'Cancelled', 'Refunded') 
+                           ORDER BY id DESC")->fetchAll();
+} catch (PDOException $e) {
+    $orders = [];
+    error_log("Error fetching active orders: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>

@@ -1,25 +1,18 @@
 <?php
 /**
  * Adda Collection - Admin Category Management
- * Simple core segments management console.
  */
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/../common/config.php';
+
+// Admin Auth Check
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header("Location: ../auth.php");
+    exit;
 }
 
 $message = '';
@@ -67,6 +60,7 @@ if (isset($_GET['delete'])) {
     } catch (PDOException $e) { $error = "Active products are currently mapped to this classification."; }
 }
 
+// Fetch categories
 $categories = $pdo->query("SELECT c.*, COUNT(p.id) as product_count FROM categories c LEFT JOIN products p ON c.id = p.category_id GROUP BY c.id ORDER BY c.id ASC")->fetchAll();
 ?>
 <!DOCTYPE html>

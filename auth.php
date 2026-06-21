@@ -1,29 +1,12 @@
 <?php
 /**
- * Adda Collection - Unified Auth System (Login & Signup with Security Guard)
- * Monolithic architecture with secure password hashing, session tracking, and ban filtering.
+ * Adda Collection - Unified Auth System
  */
 
-// Aiven Database Configuration
-define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
-define('DB_USER', 'avnadmin');
-define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM'); 
-define('DB_NAME', 'defaultdb');
-define('DB_PORT', '13574');
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    // PDO connection string with Port included
-    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
-} catch (PDOException $e) {
-    $pdo = null;
-    // Error will be caught in the POST logic below
-}
-
+// Session management
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -39,9 +22,10 @@ if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
 $error_msg = '';
 $success_msg = '';
 $active_tab = 'login'; 
-$account_banned_trigger = false; 
 
+// Authentication Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // $pdo ab common/config.php se global available hai
     if (!$pdo) {
         $error_msg = "Database Connection Failed. Please check network/config.";
     } else {
@@ -62,10 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $user = $stmt->fetch();
 
                     if ($user && password_verify($password, $user['password'])) {
-                        
                         if (isset($user['is_banned']) && $user['is_banned'] == 1) {
-                            $account_banned_trigger = true;
-                            $error_msg = "Security Restriction: This account node has been banned by management.";
+                            $error_msg = "Security Restriction: This account has been banned.";
                         } else {
                             $_SESSION['user_id'] = $user['id'];
                             $_SESSION['user_name'] = $user['name'];
@@ -81,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error_msg = "Invalid email address or incorrect password security trace.";
                     }
                 } catch (PDOException $e) {
-                    $error_msg = "Database lookup authentication failure: " . $e->getMessage();
+                    $error_msg = "Database lookup authentication failure.";
                 }
             }
         }
@@ -105,10 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $check->execute([$email]);
                     
                     if ($check->fetch()) {
-                        $error_msg = "This email identifier is already registered in our node.";
+                        $error_msg = "This email identifier is already registered.";
                     } else {
                         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
-                        
                         $ins = $pdo->prepare("INSERT INTO users (name, email, password, role, is_banned) VALUES (?, ?, ?, 'user', 0)");
                         $ins->execute([$name, $email, $hashed_password]);
                         

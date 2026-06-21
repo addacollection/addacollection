@@ -1,7 +1,6 @@
 <?php
 /**
  * Adda Collection — Dynamic Administrative Command Center
- * Location: /admin/index.php
  */
 
 if (session_status() == PHP_SESSION_NONE) {
@@ -14,29 +13,24 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/../common/config.php';
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-    
+    // 2. Dashboard Metrics (Ab $pdo central config se aa raha hai)
     $user_count = $pdo->query("SELECT COUNT(id) FROM users WHERE role != 'admin'")->fetchColumn() ?: 0;
     $product_count = $pdo->query("SELECT COUNT(id) FROM products")->fetchColumn() ?: 0;
     $order_count = $pdo->query("SELECT COUNT(id) FROM orders")->fetchColumn() ?: 0;
     $total_sales = $pdo->query("SELECT SUM(total_price) FROM orders WHERE status = 'delivered'")->fetchColumn() ?: 0;
     
-    $recent_orders = $pdo->query("SELECT o.*, u.name as customer_name FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC LIMIT 5")->fetchAll();
+    $recent_orders = $pdo->query("SELECT o.*, u.name as customer_name 
+                                  FROM orders o 
+                                  JOIN users u ON o.user_id = u.id 
+                                  ORDER BY o.created_at DESC LIMIT 5")->fetchAll();
 } catch (PDOException $e) {
     $user_count = 0; $product_count = 0; $order_count = 0; $total_sales = 0;
     $recent_orders = [];
+    error_log("Dashboard Data Error: " . $e->getMessage());
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {

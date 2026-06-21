@@ -1,32 +1,42 @@
 <?php
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+/**
+ * Adda Collection - Admin Offer Management
+ */
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/../common/config.php';
+
+// Auth check (Ensure only admin can manage offers)
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    die("Access Denied.");
 }
 
-// Handle Offer Update
+// 2. Handle Offer Update
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_offer'])) {
     $product_id = (int)$_POST['product_id'];
     $discount_percent = (int)$_POST['discount_percent'];
     
-    $stmt = $pdo->prepare("UPDATE products SET discount_percent = ? WHERE id = ?");
-    $stmt->execute([$discount_percent, $product_id]);
-    $message = "SYSTEM UPDATE: OFFER CONFIGURATION SAVED FOR ID #$product_id";
+    try {
+        // $pdo central config file se a raha hai
+        $stmt = $pdo->prepare("UPDATE products SET discount_percent = ? WHERE id = ?");
+        $stmt->execute([$discount_percent, $product_id]);
+        $message = "SYSTEM UPDATE: OFFER CONFIGURATION SAVED FOR ID #$product_id";
+    } catch (PDOException $e) {
+        $message = "Error updating offer: " . $e->getMessage();
+    }
 }
 
-$products = $pdo->query("SELECT * FROM products")->fetchAll(PDO::FETCH_ASSOC);
+// 3. Fetch Products
+try {
+    $products = $pdo->query("SELECT * FROM products")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $products = [];
+    error_log("Error fetching products: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>

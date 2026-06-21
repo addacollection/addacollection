@@ -1,27 +1,12 @@
 <?php
 /**
  * Adda Collection - Ultra Premium Ivory & Rich Espresso Brown Edit
- * Fully standalone monolithic page with smooth curved architecture.
  */
 
-// Aiven Database Configuration
-define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
-define('DB_USER', 'avnadmin');
-define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM'); 
-define('DB_NAME', 'defaultdb');
-define('DB_PORT', '13574');
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
-} catch (PDOException $e) {
-    $pdo = null;
-}
-
+// Session start
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -29,6 +14,7 @@ if (session_status() == PHP_SESSION_NONE) {
 $cart_count = 0;
 $new_count = 0; 
 
+// $pdo ab common/config.php se automatically global variable ban kar aa raha hai
 if (isset($_SESSION['user_id']) && $pdo) {
     // Fetch Cart Count
     try {
@@ -54,18 +40,13 @@ if (isset($_SESSION['user_id']) && $pdo) {
     }
 }
 
-// Fetch Categories
+// Fetch Categories & Products
 $categories = [];
+$featured_products = [];
+
 if ($pdo) {
     try {
         $categories = $pdo->query("SELECT * FROM categories ORDER BY name ASC LIMIT 6")->fetchAll();
-    } catch (PDOException $e) {}
-}
-
-// Fetch Featured Products
-$featured_products = [];
-if ($pdo) {
-    try {
         $featured_products = $pdo->query("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC LIMIT 8")->fetchAll();
     } catch (PDOException $e) {}
 }

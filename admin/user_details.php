@@ -1,7 +1,6 @@
 <?php
 /**
  * Adda Collection — User Intelligence & Diagnostic Profile Console
- * Location: /admin/user_details.php
  */
 
 if (session_status() == PHP_SESSION_NONE) {
@@ -14,12 +13,8 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/../common/config.php';
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header("Location: users.php");
@@ -32,43 +27,37 @@ $orders_success = 0; $orders_rejected = 0; $orders_refund = 0; $orders_pending =
 $total_orders = 0; $total_investment = 0; $order_history = [];
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-    
+    // User details fetch
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? AND role != 'admin'");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
     
     if (!$user) {
-        die("System Alert: Request profile hash code not found in active database clusters.");
+        die("System Alert: Request profile not found.");
     }
 
+    // Safety checks for columns
     $checkStatusCol = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'status'")->fetch();
     $checkPriceCol = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'total_price'")->fetch();
     
+    // Metrics
     $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ?");
     $stmt->execute([$userId]);
     $total_orders = $stmt->fetchColumn() ?: 0;
 
     if ($checkStatusCol) {
-        $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'delivered'");
-        $stmt->execute([$userId]);
-        $orders_success = $stmt->fetchColumn() ?: 0;
-
-        $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'cancelled'");
-        $stmt->execute([$userId]);
-        $orders_rejected = $stmt->fetchColumn() ?: 0;
-
-        $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'refunded'");
-        $stmt->execute([$userId]);
-        $orders_refund = $stmt->fetchColumn() ?: 0;
-
-        $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = 'pending'");
-        $stmt->execute([$userId]);
-        $orders_pending = $stmt->fetchColumn() ?: 0;
+        $stats = ['delivered', 'cancelled', 'refunded', 'pending'];
+        foreach ($stats as $s) {
+            $stmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE user_id = ? AND status = ?");
+            $stmt->execute([$userId, $s]);
+            $count = $stmt->fetchColumn() ?: 0;
+            
+            // Assign to variables
+            if ($s == 'delivered') $orders_success = $count;
+            elseif ($s == 'cancelled') $orders_rejected = $count;
+            elseif ($s == 'refunded') $orders_refund = $count;
+            elseif ($s == 'pending') $orders_pending = $count;
+        }
 
         if ($checkPriceCol) {
             $stmt = $pdo->prepare("SELECT SUM(total_price) FROM orders WHERE user_id = ? AND status = 'delivered'");
@@ -87,7 +76,7 @@ try {
     $order_history = $stmt->fetchAll();
 
 } catch (PDOException $e) {
-    die("Database Connection Error: " . $e->getMessage());
+    die("Database Error: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>

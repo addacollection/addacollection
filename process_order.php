@@ -1,23 +1,19 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$db   = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
+// Order processing logic
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $user_id = $_SESSION['user_id'];
+    $payment_mode = $_POST['payment'];
+    $utr_number = $_POST['utr_number'];
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        $user_id = $_SESSION['user_id'];
-        $payment_mode = $_POST['payment'];
-        $utr_number = $_POST['utr_number'];
+    try {
+        // Transaction start karo taaki agar beech mein error aaye toh data kharab na ho
+        $pdo->beginTransaction();
 
         // 1. Order insert karo
         $stmt = $pdo->prepare("INSERT INTO orders (user_id, name, email, phone, shipping_address, payment_method, utr_number, total_amount, order_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Processing')");
@@ -38,10 +34,14 @@ try {
         // 3. Cart khali karo
         $pdo->prepare("DELETE FROM cart WHERE user_id = ?")->execute([$user_id]);
 
+        $pdo->commit(); // Sab sahi raha toh save kar do
+
         echo "<script>alert('Order Placed Successfully!'); window.location.href='orders.php';</script>";
         exit();
+
+    } catch (Exception $e) {
+        $pdo->rollBack(); // Error aane par purana data restore kar do
+        die("Error processing your order: " . $e->getMessage());
     }
-} catch (Exception $e) {
-    die("Error: " . $e->getMessage());
 }
 ?>

@@ -1,32 +1,24 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$db   = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
-}
-
+// Auth check
 if (!isset($_SESSION['user_id'])) { 
     header("Location: login.php"); 
     exit(); 
 }
 
-// Orders fetch karo
-$stmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC");
-$stmt->execute([$_SESSION['user_id']]);
-$orders = $stmt->fetchAll();
+// 2. Orders fetch karo ($pdo ab config.php se aa raha hai)
+try {
+    $stmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt->execute([$_SESSION['user_id']]);
+    $orders = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("Error fetching orders: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>

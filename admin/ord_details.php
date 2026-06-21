@@ -1,35 +1,31 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
-
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
-}
+// 1. Centralized Database Connection (SSL included)
+// Ensure path points to your common configuration
+require_once __DIR__ . '/../common/config.php';
 
 $order_id = $_GET['id'] ?? 0;
 
-// 1. Order Details fetch karo
-$stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
-$stmt->execute([$order_id]);
-$order = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    // 2. Order Details fetch karo
+    $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
+    $stmt->execute([$order_id]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$order) { die("Order not found!"); }
+    if (!$order) {
+        die("Order not found!");
+    }
 
-// 2. Order Items fetch karo
-$items_stmt = $pdo->prepare("SELECT * FROM order_items WHERE order_id = ?");
-$items_stmt->execute([$order_id]);
-$items = $items_stmt->fetchAll(PDO::FETCH_ASSOC);
+    // 3. Order Items fetch karo
+    $items_stmt = $pdo->prepare("SELECT * FROM order_items WHERE order_id = ?");
+    $items_stmt->execute([$order_id]);
+    $items = $items_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+} catch (PDOException $e) {
+    die("Database Error: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>

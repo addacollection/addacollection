@@ -1,30 +1,15 @@
 <?php
 /**
  * Adda Collection - Client Categories View
- * Amazon App Style Compact Boxes
  */
 
-// Aiven Database Configuration
-define('DB_HOST', 'mysql-7efca4b-addacollection.i.aivencloud.com');
-define('DB_USER', 'avnadmin');
-define('DB_PASS', 'AVNS_h0ihm4NmXYmZcJ8ISQM');
-define('DB_NAME', 'defaultdb');
-define('DB_PORT', '13574');
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
-} catch (PDOException $e) {
-    $pdo = null;
-}
-
+// Session start
 if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// 1. Fetch Categories from Database
+// 2. Fetch Categories from Database
 $categories_list = [];
 if ($pdo) {
     try {
@@ -35,7 +20,7 @@ if ($pdo) {
     }
 }
 
-// 2. Fallback Categories (if DB is empty or connection fails)
+// 3. Fallback Categories (if DB is empty or connection fails)
 $default_categories = [
     ['id' => 1, 'name' => 'Womens Wear', 'img' => 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=200&q=80'],
     ['id' => 2, 'name' => 'Mens Wear', 'img' => 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=200&q=80'],

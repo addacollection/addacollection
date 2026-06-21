@@ -1,32 +1,33 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) session_start();
 
-// Aiven MySQL Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$db   = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included from common/config.php)
+require_once __DIR__ . '/common/config.php';
 
-// Connection string update
-$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-
-try {
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    die("Please log in.");
 }
 
-$stmt = $pdo->prepare("SELECT SUM(products.price * cart.quantity) as subtotal FROM cart JOIN products ON cart.product_id = products.id WHERE cart.user_id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$cart_data = $stmt->fetch(PDO::FETCH_ASSOC);
-$subtotal = $cart_data['subtotal'] ?? 0;
+// 2. Fetch Cart Subtotal
+try {
+    $stmt = $pdo->prepare("SELECT SUM(products.price * cart.quantity) as subtotal 
+                           FROM cart 
+                           JOIN products ON cart.product_id = products.id 
+                           WHERE cart.user_id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $cart_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    $subtotal = $cart_data['subtotal'] ?? 0;
 
-$delivery_charge = 50; // Default COD
-$total_payable = $subtotal + $delivery_charge;
+    $delivery_charge = 50; // Default COD
+    $total_payable = $subtotal + $delivery_charge;
+    
+} catch (PDOException $e) {
+    $subtotal = 0;
+    $total_payable = 0;
+    error_log("Cart calculation error: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>

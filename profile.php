@@ -1,29 +1,18 @@
 <?php
-session_start();
+// Session start pehle hi rakho
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Database Connection file ko include karo (Isme SSL wali config hai)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
-}
-
-// Auth check file validation
+// 2. Auth check file validation
 if (file_exists(__DIR__ . '/auth_check.php')) {
     require_once(__DIR__ . '/auth_check.php');
 } else {
     die("Error: 'auth_check.php' missing.");
 }
 
-// Locks the page if not logged in
+// 3. Access control (Function defined in auth_check.php)
 check_user_access();
 
 $user_id = $_SESSION['user_id'];
@@ -38,6 +27,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'logout') {
 
 // Fetch Active Logged-in User Data
 try {
+    // Ab $pdo global variable hai jo common/config.php se aa raha hai
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);

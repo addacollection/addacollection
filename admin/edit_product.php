@@ -1,30 +1,25 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+// Path ko apni file location ke hisaab se adjust kar lena
+require_once __DIR__ . '/common/config.php';
 
+// 2. Fetch Products
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    // $pdo object ab central config se aa raha hai
+    $products = $pdo->query("SELECT * FROM products")->fetchAll();
+
+    $selected_p = null;
+    if (isset($_GET['id'])) {
+        $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$_GET['id']]);
+        $selected_p = $stmt->fetch();
+    }
 } catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
-}
-
-$products = $pdo->query("SELECT * FROM products")->fetchAll();
-
-$selected_p = null;
-if (isset($_GET['id'])) {
-    $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
-    $stmt->execute([$_GET['id']]);
-    $selected_p = $stmt->fetch();
+    $products = [];
+    error_log("Error fetching product data: " . $e->getMessage());
 }
 ?>
 

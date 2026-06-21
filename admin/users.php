@@ -14,22 +14,14 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/../common/config.php';
 
 $search_query = '';
+$users = [];
+
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-    
-    // Search Parameter Sanitization & Execution
+    // 2. Search Parameter Sanitization & Execution
     if (isset($_GET['search']) && trim($_GET['search']) !== '') {
         $search_query = trim($_GET['search']);
         $stmt = $pdo->prepare("SELECT * FROM users WHERE role = 'user' AND (name LIKE ? OR email LIKE ?) ORDER BY id DESC");
@@ -39,8 +31,9 @@ try {
         // Default View: All active users
         $users = $pdo->query("SELECT * FROM users WHERE role = 'user' ORDER BY id DESC")->fetchAll();
     }
-
 } catch (PDOException $e) {
+    // Log the error internally and set users to empty
+    error_log("Database Error in users.php: " . $e->getMessage());
     $users = [];
 }
 ?>

@@ -1,28 +1,20 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$db   = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Auth check
+if (!isset($_SESSION['user_id'])) { 
+    header("Location: auth.php"); 
+    exit; 
 }
 
-if (!isset($_SESSION['user_id'])) { header("Location: auth.php"); exit; }
-
-// 1. Auto-Delete 30 days
+// 2. Auto-Delete 30 days old notifications
 $pdo->exec("DELETE FROM notifications WHERE created_at < NOW() - INTERVAL 30 DAY");
 
-// 2. Mark ALL existing notifications as READ for this user
+// 3. Mark ALL existing notifications as READ
 $stmt = $pdo->prepare("
     INSERT IGNORE INTO notification_read (user_id, notification_id)
     SELECT ?, id FROM notifications 
@@ -30,7 +22,7 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$_SESSION['user_id'], $_SESSION['user_id']]);
 
-// 3. Delete Logic
+// 4. Delete Logic
 if (isset($_GET['del_id'])) {
     $stmt = $pdo->prepare("INSERT IGNORE INTO user_notification_status (user_id, notification_id) VALUES (?, ?)");
     $stmt->execute([$_SESSION['user_id'], (int)$_GET['del_id']]);
@@ -38,7 +30,7 @@ if (isset($_GET['del_id'])) {
     exit;
 }
 
-// 4. Fetch Data
+// 5. Fetch Data
 $notices = $pdo->prepare("
     SELECT n.* FROM notifications n 
     WHERE n.id NOT IN (SELECT notification_id FROM user_notification_status WHERE user_id = ?) 
@@ -47,7 +39,6 @@ $notices = $pdo->prepare("
 $notices->execute([$_SESSION['user_id']]);
 $notices = $notices->fetchAll();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

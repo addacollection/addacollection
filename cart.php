@@ -1,22 +1,11 @@
 <?php
+// Session start
 if (session_status() == PHP_SESSION_NONE) session_start();
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+require_once __DIR__ . '/common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
-}
-
-// 1. SESSION CHECK
+// 2. SESSION CHECK
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -24,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// 2. ADD TO CART LOGIC
+// 3. ADD TO CART LOGIC
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'add_to_cart') {
     $product_id = intval($_POST['product_id']);
     $quantity = intval($_POST['quantity']);
@@ -36,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     exit();
 }
 
-// 3. DELETE LOGIC
+// 4. DELETE LOGIC
 if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
     $stmt = $pdo->prepare("DELETE FROM cart WHERE id = ? AND user_id = ?");
     $stmt->execute([intval($_GET['id']), $user_id]);
@@ -44,10 +33,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     exit();
 }
 
-// 4. FETCH CART DATA
+// 5. FETCH CART DATA
 $stmt = $pdo->prepare("SELECT cart.id as cart_id, products.* FROM cart 
-                        JOIN products ON cart.product_id = products.id 
-                        WHERE cart.user_id = ?");
+                       JOIN products ON cart.product_id = products.id 
+                       WHERE cart.user_id = ?");
 $stmt->execute([$user_id]);
 $cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

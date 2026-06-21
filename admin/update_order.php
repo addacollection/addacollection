@@ -1,20 +1,18 @@
 <?php
-session_start();
+/**
+ * Adda Collection - Delivery Status Management
+ */
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
+// 1. Centralized Database Connection (SSL included)
+// Ensure path points to your common configuration correctly
+require_once __DIR__ . '/../common/config.php';
+
+// Auth check
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    die("Access Denied.");
 }
 
 if (!isset($_GET['id'])) {
@@ -24,20 +22,28 @@ if (!isset($_GET['id'])) {
 
 $order_id = $_GET['id'];
 
-// Order details fetch karna
-$stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
-$stmt->execute([$order_id]);
-$order = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    // 2. Order details fetch karna
+    $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
+    $stmt->execute([$order_id]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $new_status = $_POST['status'];
-    
-    // Status update logic
-    $update = $pdo->prepare("UPDATE orders SET order_status = ? WHERE id = ?");
-    $update->execute([$new_status, $order_id]);
-    
-    header("Location: delivery.php?success=1");
-    exit();
+    if (!$order) {
+        die("Order not found!");
+    }
+
+    // 3. Status update logic
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $new_status = $_POST['status'];
+        
+        $update = $pdo->prepare("UPDATE orders SET order_status = ? WHERE id = ?");
+        $update->execute([$new_status, $order_id]);
+        
+        header("Location: delivery.php?success=1");
+        exit();
+    }
+} catch (PDOException $e) {
+    die("Database Error: " . $e->getMessage());
 }
 ?>
 

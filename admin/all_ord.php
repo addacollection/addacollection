@@ -1,30 +1,31 @@
 <?php
-session_start();
+// Session start
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+// Agar ye file admin folder mein hai toh path sahi adjust karna: ../common/config.php
+require_once __DIR__ . '/../common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
+// Auth check (Ensure only admin can update)
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    die("Access Denied.");
 }
 
-// 1. STATUS UPDATE LOGIC
+// 2. STATUS UPDATE LOGIC
 if (isset($_POST['update_status'])) {
     $order_id = $_POST['order_id'];
     $new_status = $_POST['new_status'];
-    $stmt = $pdo->prepare("UPDATE orders SET order_status = ? WHERE id = ?");
-    $stmt->execute([$new_status, $order_id]);
-    header("Location: all_ord.php");
-    exit();
+    
+    try {
+        // $pdo ab central config se aa raha hai
+        $stmt = $pdo->prepare("UPDATE orders SET order_status = ? WHERE id = ?");
+        $stmt->execute([$new_status, $order_id]);
+        
+        header("Location: all_ord.php");
+        exit();
+    } catch (PDOException $e) {
+        die("Error updating status: " . $e->getMessage());
+    }
 }
 
 $statuses = ['Processing', 'Shipped', 'Completed', 'Rejected'];

@@ -1,23 +1,15 @@
 <?php
-session_start();
+// Session check
+if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
-// Aiven Database Configuration
-$host = 'mysql-7efca4b-addacollection.i.aivencloud.com';
-$dbname = 'defaultdb';
-$user = 'avnadmin';
-$pass = 'AVNS_h0ihm4NmXYmZcJ8ISQM';
-$port = 13574;
+// 1. Centralized Database Connection (SSL included)
+// Note: Path adjust kar lena agar admin folder deeper hai
+require_once __DIR__ . '/../common/config.php';
 
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
-}
-
+// Admin Auth check
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: ../auth.php"); exit;
+    header("Location: ../auth.php"); 
+    exit;
 }
 
 $upload_dir = "../uploads/products/";
@@ -25,6 +17,7 @@ if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0777, true);
 }
 
+// Categories fetch kar sakte ho, ya hardcoded rakho
 $categories = ['Womens Wear', 'Mens Wear', 'Kids Wear', 'T-Shirts', 'Shirts', 'Jeans & Denim', 'Winter Clothes', 'Sarees & Kurtis', 'Trousers & Pants'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,10 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $img = time() . "_" . $_FILES['image']['name'];
     
+    // 2. PDO $pdo ab config.php se mil raha hai
     if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_dir . $img)) {
-        $stmt = $pdo->prepare("INSERT INTO products (name, price, description, category, image_url) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $price, $desc, $cat, $img]);
-        echo "<script>alert('Product added successfully!'); window.location='products.php';</script>";
+        try {
+            $stmt = $pdo->prepare("INSERT INTO products (name, price, description, category, image_url) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $price, $desc, $cat, $img]);
+            echo "<script>alert('Product added successfully!'); window.location='products.php';</script>";
+        } catch (PDOException $e) {
+            echo "<script>alert('Database Error: " . $e->getMessage() . "');</script>";
+        }
     } else {
         echo "<script>alert('Failed to upload image. Check folder permissions.');</script>";
     }

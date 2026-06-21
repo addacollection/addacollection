@@ -1,18 +1,16 @@
 <?php
 /**
- * Adda Collection - Secure Admin Portal Access Node
- * Location: /admin/login.php
+ * Adda Collection - Admin Portal Access Node
  */
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Fixed Admin Credentials Configuration
-define('ADMIN_USER', 'Addacollection_admin');
-define('ADMIN_PASS', 'Addacollection0001');
+// 1. Centralized Database Connection
+require_once __DIR__ . '/../common/config.php';
 
-// Agar admin pehle se logged in hai, toh seedhe admin dashboard par bhejo
+// Agar admin pehle se logged in hai
 if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
     header("Location: index.php");
     exit;
@@ -21,22 +19,32 @@ if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['username'] ?? ''); // Admin email/username
     $password = $_POST['password'] ?? '';
 
-    if (empty($username) || empty($password)) {
+    if (empty($email) || empty($password)) {
         $error_msg = "Please fill in all mandatory access paths.";
-    } elseif ($username === ADMIN_USER && $password === ADMIN_PASS) {
-        // Secure admin session token deployment
-        session_regenerate_id(true); // Extra security: prevent session fixation
-        $_SESSION['user_id'] = 'ADMIN_NODE_01';
-        $_SESSION['user_name'] = 'Adda Admin';
-        $_SESSION['user_role'] = 'admin';
-
-        header("Location: index.php");
-        exit;
     } else {
-        $error_msg = "Invalid administrative secure signature trace.";
+        try {
+            // Database se admin verify karo
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? AND role = 'admin'");
+            $stmt->execute([$email]);
+            $admin = $stmt->fetch();
+
+            if ($admin && password_verify($password, $admin['password'])) {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $admin['id'];
+                $_SESSION['user_name'] = $admin['name'];
+                $_SESSION['user_role'] = 'admin';
+
+                header("Location: index.php");
+                exit;
+            } else {
+                $error_msg = "Invalid administrative secure signature trace.";
+            }
+        } catch (PDOException $e) {
+            $error_msg = "Auth system failure.";
+        }
     }
 }
 ?>
